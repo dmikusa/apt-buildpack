@@ -1,4 +1,4 @@
-api = "0.9"
+api = "0.10"
 
 [buildpack]
 id = "dmikusa/apt"
@@ -22,3 +22,14 @@ id = "io.buildpacks.stacks.bionic"
 
 [[stacks]]
 id = "io.buildpacks.stacks.jammy"
+
+[[stacks]]
+id = "io.buildpacks.stacks.noble"
+
+[[targets]]
+  arch = "amd64"
+  os = "linux"
+
+[[targets]]
+  arch = "arm64"
+  os = "linux"
