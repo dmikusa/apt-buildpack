@@ -126,7 +126,7 @@ EOF
   echo -n "$path:$PATH" > "$apt_env_dir/PATH.prepend"
   echo -n ":" > "$apt_env_dir/PATH.delim"
 
-  ld_library_path=$apt_layer/lib/x86_64-linux-gnu:$apt_layer/lib/i386-linux-gnu:$apt_layer/lib:$apt_layer/usr/lib/x86_64-linux-gnu:$apt_layer/usr/lib/i386-linux-gnu:$apt_layer/usr/lib
+  ld_library_path=$apt_layer/lib/aarch64-linux-gnu:$apt_layer/lib/x86_64-linux-gnu:$apt_layer/lib/i386-linux-gnu:$apt_layer/lib:$apt_layer/usr/lib/aarch64-linux-gnu:$apt_layer/usr/lib/x86_64-linux-gnu:$apt_layer/usr/lib/i386-linux-gnu:$apt_layer/usr/lib
   echo "LD_LIBRARY_PATH=$ld_library_path" | indent
   echo "LD_LIBRARY_PATH = \"$ld_library_path:\$LD_LIBRARY_PATH\"" >> "$exports_path"
   echo -n "$ld_library_path" > "$apt_env_dir/LD_LIBRARY_PATH.prepend"
@@ -138,7 +138,7 @@ EOF
   echo -n "$library_path" > "$apt_env_dir/LIBRARY_PATH.prepend"
   echo -n ":" > "$apt_env_dir/LIBRARY_PATH.delim"
 
-  include_path=$apt_layer/usr/include:$apt_layer/usr/include/x86_64-linux-gnu
+  include_path=$apt_layer/usr/include:$apt_layer/usr/include/aarch64-linux-gnu:$apt_layer/usr/include/x86_64-linux-gnu
   echo "INCLUDE_PATH=$include_path" | indent
   echo "INCLUDE_PATH = \"$include_path:\$INCLUDE_PATH\"" >> "$exports_path"
   echo -n "$include_path" > "$apt_env_dir/INCLUDE_PATH.prepend"
@@ -156,7 +156,7 @@ EOF
   cp "$apt_env_dir"/INCLUDE_PATH.prepend "$apt_env_dir"/CPPPATH.prepend
   echo -n ":" > "$apt_env_dir/CPPPATH.delim"
 
-  pkg_config_path=$apt_layer/usr/lib/x86_64-linux-gnu/pkgconfig:$apt_layer/usr/lib/i386-linux-gnu/pkgconfig:$apt_layer/usr/lib/pkgconfig
+  pkg_config_path=$apt_layer/usr/lib/aarch64-linux-gnu/pkgconfig:$apt_layer/usr/lib/x86_64-linux-gnu/pkgconfig:$apt_layer/usr/lib/i386-linux-gnu/pkgconfig:$apt_layer/usr/lib/pkgconfig
   echo "PKG_CONFIG_PATH=$pkg_config_path" | indent
   echo "PKG_CONFIG_PATH = \"$pkg_config_path:\$PKG_CONFIG_PATH\"" >> "$exports_path"
   echo -n "$pkg_config_path" > "$apt_env_dir/PKG_CONFIG_PATH.prepend"
