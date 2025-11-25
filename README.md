@@ -36,6 +36,14 @@ $ pack build --buildpack dmikusa/apt myapp
     # Note: Keys can be imported in both .asc and .gpg formats
     :repo:key https://example.com/repo-signing-key.asc
 
+    # You can also import from keyserver.ubuntu.com: 
+    :repo:key CADA0F77901522B3
+    
+    # ...or from a file URL:
+    :repo:key file://key.asc
+
+    # NOTE: This key must be relative to the repository root, i.e. file:///etc/keys/foo.asc will not work.
+
 ## License
 
 MIT

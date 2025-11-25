@@ -98,7 +98,18 @@ else
     # Check if input looks like ASCII-armored key
     # Strip headers/footers and decode base64
     if grep -q "BEGIN PGP PUBLIC KEY BLOCK" "$input_file" 2>/dev/null; then
-      sed -n '/^$/,/^=/p' "$input_file" | sed '/^=/d' | base64 -d >"$output_file" 2>/dev/null
+      # Extract base64 content between BEGIN and END markers
+      # Remove header lines (Version, Comment, Hash), empty lines, and checksum line (=)
+      sed -n '/^-----BEGIN PGP PUBLIC KEY BLOCK-----/,/^-----END PGP PUBLIC KEY BLOCK-----/{
+        /^-----BEGIN/d
+        /^-----END/d
+        /^Version:/d
+        /^Comment:/d
+        /^Hash:/d
+        /^$/d
+        /^=/d
+        p
+      }' "$input_file" | base64 -d >"$output_file" 2>/dev/null
       return $?
     else
       # Already in binary format, just copy
@@ -108,37 +119,107 @@ else
   }
   # import custom GPG keys from Aptfile
   # like>>    :repo:key https://example.com/repo-key.gpg
+  # or>>      :repo:key file:///path/to/key.asc
+  # or>>      :repo:key 871920D1991BC93C
   if grep -q -e "^:repo:key " Aptfile; then
     topic "Importing custom GPG keys"
-    cat Aptfile | grep -s -e "^:repo:key " | sed 's/^:repo:key\s\+//g' | while read -r KEY_URL; do
-      if [ -n "$KEY_URL" ]; then
-        KEY_FILE="$APT_KEYS_DIR/$(echo "$KEY_URL" | md5sum | cut -d' ' -f1).gpg"
+    cat Aptfile | grep -s -e "^:repo:key " | sed 's/^:repo:key\s\+//g' | while read -r KEY_VALUE; do
+      if [ -n "$KEY_VALUE" ]; then
+        KEY_FILE="$APT_KEYS_DIR/$(echo "$KEY_VALUE" | md5sum | cut -d' ' -f1).gpg"
         TEMP_KEY=$(mktemp)
-        echo "Fetching key from $KEY_URL" | indent
 
-        if curl --silent --show-error --fail -L "$KEY_URL" -o "$TEMP_KEY" 2>&1 | indent; then
-          if command -v gpg >/dev/null 2>&1; then
-            # Use gpg if available
-            if gpg --dearmor <"$TEMP_KEY" >"$KEY_FILE" 2>/dev/null; then
-              echo "Successfully imported key using gpg" | indent
-              rm -f "$TEMP_KEY"
+        # Check if it's a URL (http, https, or file), key ID, or raw key content
+        if [[ "$KEY_VALUE" =~ ^file:// ]]; then
+          # It's a file:// URL, extract the path and use it directly
+          FILE_PATH="${KEY_VALUE#file://}"
+          # Remove leading slash if present (file:/// has three slashes)
+          FILE_PATH="${FILE_PATH#/}"
+          echo "Reading key from file $FILE_PATH" | indent
+
+          if [ -f "$FILE_PATH" ]; then
+            TEMP_KEY="$FILE_PATH"
+            if command -v gpg >/dev/null 2>&1; then
+              # Use gpg if available
+              if gpg --dearmor <"$TEMP_KEY" >"$KEY_FILE" 2>/dev/null; then
+                echo "Successfully imported key using gpg" | indent
+              else
+                error "Failed to dearmor GPG key from $FILE_PATH"
+              fi
             else
-              rm -f "$TEMP_KEY"
-              error "Failed to dearmor GPG key from $KEY_URL"
+              # Fall back to manual dearmoring
+              if dearmor_key "$TEMP_KEY" "$KEY_FILE"; then
+                echo "Successfully imported key" | indent
+              else
+                error "Failed to dearmor GPG key from $FILE_PATH. The key format may not be supported without gpg installed."
+              fi
             fi
           else
-            # Fall back to manual dearmoring
-            if dearmor_key "$TEMP_KEY" "$KEY_FILE"; then
-              echo "Successfully imported key" | indent
-              rm -f "$TEMP_KEY"
+            error "Key file not found: $FILE_PATH"
+          fi
+        elif [[ "$KEY_VALUE" =~ ^https?:// ]]; then
+          # It's a HTTP/HTTPS URL, download it
+          echo "Fetching key from $KEY_VALUE" | indent
+
+          if curl --silent --show-error --fail -L "$KEY_VALUE" -o "$TEMP_KEY" 2>&1 | indent; then
+            if command -v gpg >/dev/null 2>&1; then
+              # Use gpg if available
+              if gpg --dearmor <"$TEMP_KEY" >"$KEY_FILE" 2>/dev/null; then
+                echo "Successfully imported key using gpg" | indent
+                rm -f "$TEMP_KEY"
+              else
+                rm -f "$TEMP_KEY"
+                error "Failed to dearmor GPG key from $KEY_VALUE"
+              fi
             else
-              rm -f "$TEMP_KEY"
-              error "Failed to dearmor GPG key from $KEY_URL. The key format may not be supported without gpg installed."
+              # Fall back to manual dearmoring
+              if dearmor_key "$TEMP_KEY" "$KEY_FILE"; then
+                echo "Successfully imported key" | indent
+                rm -f "$TEMP_KEY"
+              else
+                rm -f "$TEMP_KEY"
+                error "Failed to dearmor GPG key from $KEY_VALUE. The key format may not be supported without gpg installed."
+              fi
             fi
+          else
+            rm -f "$TEMP_KEY"
+            error "Failed to download GPG key from $KEY_VALUE"
+          fi
+        elif [[ "$KEY_VALUE" =~ ^(0x)?[0-9A-Fa-f]{8,}$ ]]; then
+          # It's a key ID, fetch from keyserver
+          echo "Fetching key $KEY_VALUE from keyserver.ubuntu.com" | indent
+          # Add 0x prefix if not already present
+          if [[ "$KEY_VALUE" =~ ^0x ]]; then
+            KEY_URL="https://keyserver.ubuntu.com/pks/lookup?op=get&options=mr&search=$KEY_VALUE"
+          else
+            KEY_URL="https://keyserver.ubuntu.com/pks/lookup?op=get&options=mr&search=0x$KEY_VALUE"
+          fi
+
+          if curl --silent --show-error --fail -L "$KEY_URL" -o "$TEMP_KEY" 2>&1 | indent; then
+            if command -v gpg >/dev/null 2>&1; then
+              # Use gpg if available
+              if gpg --dearmor <"$TEMP_KEY" >"$KEY_FILE" 2>/dev/null; then
+                echo "Successfully imported key using gpg" | indent
+                rm -f "$TEMP_KEY"
+              else
+                rm -f "$TEMP_KEY"
+                error "Failed to dearmor GPG key $KEY_VALUE"
+              fi
+            else
+              # Fall back to manual dearmoring
+              if dearmor_key "$TEMP_KEY" "$KEY_FILE"; then
+                echo "Successfully imported key" | indent
+                rm -f "$TEMP_KEY"
+              else
+                rm -f "$TEMP_KEY"
+                error "Failed to dearmor GPG key $KEY_VALUE. The key format may not be supported without gpg installed."
+              fi
+            fi
+          else
+            rm -f "$TEMP_KEY"
+            error "Failed to download GPG key $KEY_VALUE from keyserver"
           fi
         else
-          rm -f "$TEMP_KEY"
-          error "Failed to download GPG key from $KEY_URL"
+          error "Unsupported key format: $KEY_VALUE. Use a URL (http://, https://, file://), or a key ID."
         fi
       fi
     done
