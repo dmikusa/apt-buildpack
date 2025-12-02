@@ -71,6 +71,12 @@ else
   mkdir -p "$APT_KEYS_DIR"       # make dir for GPG keys
   cp -f Aptfile "$apt_layer"/Aptfile
   cat "/etc/apt/sources.list" >"$APT_SOURCES" # no cp here
+  
+  if [ -d "/etc/apt/trusted.gpg.d" ]; then
+    for key in /etc/apt/trusted.gpg.d/*; do
+      cp -f "$key" "$APT_KEYS_DIR/"
+    done
+  fi
 
   APT_OPTIONS="-o debug::nolocking=true -o dir::cache=$APT_CACHE_DIR -o dir::state=$APT_STATE_DIR"
   APT_OPTIONS="$APT_OPTIONS -o dir::etc::sourcelist=$APT_SOURCES -o dir::etc::sourceparts=/dev/null"
