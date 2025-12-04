@@ -30,6 +30,20 @@ $ pack build --buildpack dmikusa/apt myapp
     # or add custom apt repos (only required if using packages outside of the standard Ubuntu APT repositories)
     :repo:deb http://cz.archive.ubuntu.com/ubuntu artful main universe
 
+    # or import GPG keys for custom repos
+    :repo:key https://example.com/repo-signing-key.gpg
+
+    # Note: Keys can be imported in both .asc and .gpg formats
+    :repo:key https://example.com/repo-signing-key.asc
+
+    # You can also import from keyserver.ubuntu.com: 
+    :repo:key CADA0F77901522B3
+    
+    # ...or from a file URL:
+    :repo:key file://key.asc
+
+    # NOTE: This key must be relative to the repository root, i.e. file:///etc/keys/foo.asc will not work.
+
 ## License
 
 MIT
