@@ -74,15 +74,15 @@ else
   cp -f Aptfile "$apt_layer"/Aptfile
   cat "/etc/apt/sources.list" >"$APT_SOURCES" # no cp here
 
-  if [ -d "/etc/apt/sources.list.d/" ]; then
-    for part in /etc/apt/sources.list.d/*; do
-      cp -f "$part" "$APT_SOURCEPARTS/"
+  if [ -d "/etc/apt/sources.list.d" ]; then
+    for part in $(ls /etc/apt/sources.list.d/); do
+      cp -f "/etc/apt/sources.list.d/$part" "$APT_SOURCEPARTS/"
     done
   fi
 
   if [ -d "/etc/apt/trusted.gpg.d" ]; then
-    for key in /etc/apt/trusted.gpg.d/*; do
-      cp -f "$key" "$APT_KEYS_DIR/"
+    for key in $(ls /etc/apt/trusted.gpg.d/); do
+      cp -f "/etc/apt/trusted.gpg.d/$key" "$APT_KEYS_DIR/"
     done
   fi
 
