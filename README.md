@@ -1,3 +1,9 @@
+# ARCHIVED!!
+
+This buildpack has been contributed to the Paketo project. This code will no longer be updated & and this repository will be archived.
+
+Going forward, please use https://github.com/paketo-buildpacks/apt-buildpack.
+
 # apt Buildpack
 
 [![Version](https://img.shields.io/badge/dynamic/json?url=https://cnb-registry-api.herokuapp.com/api/v1/buildpacks/fagiani/apt&label=Version&query=$.latest.version)](https://github.com/dmikusa/apt-buildpack)
